@@ -73,11 +73,13 @@
     <ClInclude Include="Ball.h" />
     <ClInclude Include="Court.h" />
     <ClInclude Include="GameObject.h" />
+    <ClInclude Include="Packet.h" />
     <ClInclude Include="Slime.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Ball.cpp" />
     <ClCompile Include="GameObject.cpp" />
+    <ClCompile Include="Packet.cpp" />
     <ClCompile Include="Slime.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

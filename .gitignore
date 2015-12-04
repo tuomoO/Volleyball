@@ -28,3 +28,9 @@
 *.app
 *.sdf
 *.vcxproj.user
+*.ilk
+*.pdb
+*.suo
+VolleyballClient/Debug/*
+VolleyballLib/Debug/*
+VolleyballServer/Debug/*

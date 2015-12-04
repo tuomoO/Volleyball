@@ -32,3 +32,13 @@ void GameObject::move(float x)
 	else if (mShape.getPosition().x > Court::w - 64)
 		mShape.setPosition(Court::w - 64, mShape.getPosition().y);
 }
+
+float GameObject::getX()
+{
+	return mShape.getPosition().x;
+}
+
+float GameObject::getY()
+{
+	return mShape.getPosition().y;
+}

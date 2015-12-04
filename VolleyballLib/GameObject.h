@@ -11,6 +11,8 @@ public:
 
 	sf::RectangleShape& getShape();
 	void setPosition(float x, float y);
+	float getX();
+	float getY();
 	void move(float x);
 
 protected:

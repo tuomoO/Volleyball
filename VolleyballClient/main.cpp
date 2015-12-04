@@ -18,6 +18,7 @@
 #include "Slime.h"
 #include "Ball.h"
 #include "Court.h"
+#include "Packet.h"
 
 #include "SFML/Graphics.hpp"
 
@@ -34,7 +35,8 @@ SOCKET s;
 struct sockaddr_in si_other;
 int slen;
 bool sendData;
-char message[BUFLEN];
+//char message[BUFLEN];
+Slime *player1, *player2;
 
 int main()
 {
@@ -74,10 +76,12 @@ int main()
 
 	Slime p1(&texture, Color(0, 255, 0));
 	p1.setPosition(64, Court::h);
+	player1 = &p1;
 	Ball ball(&texture);
 	ball.setPosition(Court::w / 2.0f, Court::h / 2.0f);
 	Slime p2(&texture, Color(255, 0, 0));
 	p2.setPosition(Court::w - 64, Court::h);
+	player2 = &p2;
 
 	//time
 	LARGE_INTEGER startTime, endTime, frequency, milliSeconds;
@@ -104,13 +108,13 @@ int main()
 			if (Keyboard::isKeyPressed(Keyboard::Right))
 			{
 				p1.move(1.0f * dt);
-				strcpy(message, "right");
+				//strcpy(message, "right");
 				sendData = true;
 			}
 			else if (Keyboard::isKeyPressed(Keyboard::Left))
 			{
 				p1.move(-1.0f * dt);
-				strcpy(message, "left");
+				//strcpy(message, "left");
 				sendData = true;
 			}
 		}
@@ -148,17 +152,16 @@ int main()
 
 void receiveThread()
 {
-	char buf[BUFLEN];
+	char* sendBuff;
+	char receiveBuff[8];
 
 	while (true)
 	{
 		if (sendData)
 		{
-			//printf("Enter message : ");
-			//gets(message);
-
-			//send the message
-			if (sendto(s, message, strlen(message), 0, (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
+			MovePacket packet(player1->getX(), player1->getY());
+			sendBuff = packet.serialize();
+			if (sendto(s, sendBuff, packet.getSize(), 0, (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
 			{
 				printf("sendto() failed with error code : %d", WSAGetLastError());
 				exit(EXIT_FAILURE);
@@ -166,14 +169,15 @@ void receiveThread()
 
 			//receive a reply and print it
 			//clear the buffer by filling null, it might have previously received data
-			memset(buf, '\0', BUFLEN);
+			//memset(buf, '\0', BUFLEN);
 			//try to receive some data, this is a blocking call
-			if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
+			if (recvfrom(s, receiveBuff, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
 			{
 				printf("recvfrom() failed with error code : %d", WSAGetLastError());
 				exit(EXIT_FAILURE);
 			}
-			puts(buf);
+			MovePacket received(receiveBuff);
+			printf("x %d, y %d\n", received.x, received.y);
 			sendData = false;
 		}
 	}
