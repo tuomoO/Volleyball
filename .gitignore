@@ -34,3 +34,4 @@
 VolleyballClient/Debug/*
 VolleyballLib/Debug/*
 VolleyballServer/Debug/*
+*.opensdf

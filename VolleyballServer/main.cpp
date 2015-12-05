@@ -12,12 +12,12 @@
 
 #pragma comment(lib,"ws2_32.lib") 
 #define SERVER "127.0.0.1"
-#define BUFLEN 512
 #define PORT 8888
 
 #include "Slime.h"
 #include "Ball.h"
 #include "Court.h"
+#include "Packet.h"
 
 #include "SFML/Graphics.hpp"
 
@@ -27,11 +27,13 @@ using std::vector;
 using std::stringstream;
 
 void receiveThread();
+MovePacket checkMove(MovePacket& move);
 
 SOCKET s;
 int recv_len;
 int slen;
 struct sockaddr_in server, si_other;
+Slime* player1;
 
 int main()
 {
@@ -70,11 +72,12 @@ int main()
 	texture.loadFromFile("circle.png");
 
 	Slime p1(&texture, Color(0, 255, 0));
-	p1.setPosition(64, Court::h);
+	p1.setRealPos(64, Court::h);
+	player1 = &p1;
 	Ball ball(&texture);
-	ball.setPosition(Court::w / 2.0f, Court::h / 2.0f);
+	ball.setRealPos(Court::w / 2, Court::h / 2);
 	Slime p2(&texture, Color(255, 0, 0));
-	p2.setPosition(Court::w - 64, Court::h);
+	p2.setRealPos(Court::w - 64, Court::h);
 
 	//time
 	LARGE_INTEGER startTime, endTime, frequency, milliSeconds;
@@ -94,6 +97,10 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 		}
+
+		p1.update();
+		p2.update();
+		ball.update();
 
 		//draw
 		window.clear(Color(0u, 127u, 255u));
@@ -126,25 +133,39 @@ int main()
 
 void receiveThread()
 {
-	char buf[BUFLEN];
+	MovePacket packet;
+	char* buffer = new char[packet.size()];
 	while (true)
 	{
-		printf("Waiting for data..."); fflush(stdout);
-
-		memset(buf, '\0', BUFLEN);
-		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == SOCKET_ERROR)
+		printf("Waiting for data..."); 
+		fflush(stdout);
+		if ((recv_len = recvfrom(s, buffer, packet.size(), 0, (struct sockaddr *) &si_other, &slen)) == SOCKET_ERROR)
 		{
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
-			exit(EXIT_FAILURE);
+			break;
 		}
-
+		packet = MovePacket(buffer);
 		printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-		printf("Data: %s\n", buf);
+		printf("received: x %d, y %d\n", packet.x, packet.y);
+		packet = checkMove(packet);
+		player1->setRealPos(packet.x, packet.y);
 
-		if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
+		if (sendto(s, packet.serialize(), packet.size(), 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
 		{
 			printf("sendto() failed with error code : %d", WSAGetLastError());
-			exit(EXIT_FAILURE);
+			break;
 		}
 	}
+	delete[] buffer;
+}
+
+MovePacket checkMove(MovePacket& move)
+{
+	MovePacket result(move.x, move.y);
+	int x = player1->getRealPos().x + move.x;
+	if (x < 64)
+		result.x = x - player1->getRealPos().x;
+	else if (x > Court::w - 64)
+		result.x = player1->getRealPos().x - x;
+	return result;
 }

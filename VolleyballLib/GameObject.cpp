@@ -19,26 +19,37 @@ RectangleShape& GameObject::getShape()
 	return mShape;
 }
 
-void GameObject::setPosition(float x, float y)
+void GameObject::setRealPos(int x, int y)
 { 
-	mShape.setPosition(x, y);
+	mRealPos = Vector2i(x, y);
 }
 
+void GameObject::move(int x, int y)
+{
+	mRealPos += Vector2i(x, y);
+}
+
+Vector2i GameObject::getRealPos()
+{
+	return mRealPos;
+}
+
+/*
+Vector2f GameObject::getLocalPos()
+{
+	return mLocalPos;
+}
+*/
+
+/*
 void GameObject::move(float x)
 {
-	mShape.move(x, 0);
-	if (mShape.getPosition().x < 64)
-		mShape.setPosition(64, mShape.getPosition().y);
-	else if (mShape.getPosition().x > Court::w - 64)
-		mShape.setPosition(Court::w - 64, mShape.getPosition().y);
+	mLocalPos += Vector2f(x, 0);
 }
+*/
 
-float GameObject::getX()
+void GameObject::update()
 {
-	return mShape.getPosition().x;
-}
-
-float GameObject::getY()
-{
-	return mShape.getPosition().y;
+	// TODO Local -> real
+	mShape.setPosition(mRealPos.x, mRealPos.y);
 }

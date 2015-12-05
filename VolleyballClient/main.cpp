@@ -35,8 +35,9 @@ SOCKET s;
 struct sockaddr_in si_other;
 int slen;
 bool sendData;
-//char message[BUFLEN];
+MovePacket packet;
 Slime *player1, *player2;
+Ball* volleyball;
 
 int main()
 {
@@ -75,12 +76,12 @@ int main()
 	texture.loadFromFile("circle.png");
 
 	Slime p1(&texture, Color(0, 255, 0));
-	p1.setPosition(64, Court::h);
+	p1.setRealPos(64, Court::h);
 	player1 = &p1;
 	Ball ball(&texture);
-	ball.setPosition(Court::w / 2.0f, Court::h / 2.0f);
+	ball.setRealPos(Court::w / 2, Court::h / 2);
 	Slime p2(&texture, Color(255, 0, 0));
-	p2.setPosition(Court::w - 64, Court::h);
+	p2.setRealPos(Court::w - 64, Court::h);
 	player2 = &p2;
 
 	//time
@@ -107,17 +108,18 @@ int main()
 		{
 			if (Keyboard::isKeyPressed(Keyboard::Right))
 			{
-				p1.move(1.0f * dt);
-				//strcpy(message, "right");
+				packet = MovePacket(static_cast<int>(0.5f * dt + 0.5f), 0);
 				sendData = true;
 			}
 			else if (Keyboard::isKeyPressed(Keyboard::Left))
 			{
-				p1.move(-1.0f * dt);
-				//strcpy(message, "left");
+				packet = MovePacket(static_cast<int>(-0.5f * dt + 0.5f), 0);
 				sendData = true;
 			}
 		}
+		p1.update();
+		p2.update();
+		ball.update();
 
 		//draw
 		window.clear(Color(0u, 127u, 255u));
@@ -153,32 +155,30 @@ int main()
 void receiveThread()
 {
 	char* sendBuff;
-	char receiveBuff[8];
+	char* receiveBuff = new char[packet.size()];
 
 	while (true)
 	{
 		if (sendData)
 		{
-			MovePacket packet(player1->getX(), player1->getY());
 			sendBuff = packet.serialize();
-			if (sendto(s, sendBuff, packet.getSize(), 0, (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
+			if (sendto(s, sendBuff, packet.size(), 0, (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
 			{
 				printf("sendto() failed with error code : %d", WSAGetLastError());
-				exit(EXIT_FAILURE);
+				break;
 			}
+			printf("sent: x %d, y %d\n", packet.x, packet.y);
 
-			//receive a reply and print it
-			//clear the buffer by filling null, it might have previously received data
-			//memset(buf, '\0', BUFLEN);
-			//try to receive some data, this is a blocking call
-			if (recvfrom(s, receiveBuff, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
+			if (recvfrom(s, receiveBuff, packet.size(), 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
 			{
 				printf("recvfrom() failed with error code : %d", WSAGetLastError());
-				exit(EXIT_FAILURE);
+				break;
 			}
 			MovePacket received(receiveBuff);
-			printf("x %d, y %d\n", received.x, received.y);
+			printf("received: x %d, y %d\n", received.x, received.y);
+			player1->move(received.x, received.y);
 			sendData = false;
 		}
 	}
+	delete[] receiveBuff;
 }
