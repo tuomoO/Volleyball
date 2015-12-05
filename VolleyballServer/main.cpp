@@ -29,7 +29,7 @@ using std::stringstream;
 void receiveThread();
 MovePacket checkMove(MovePacket& move);
 
-SOCKET s;
+SOCKET mySocket;
 int recv_len;
 int slen;
 struct sockaddr_in server, si_other;
@@ -47,7 +47,7 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
+	if ((mySocket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
 	{
 		printf("Could not create socket : %d", WSAGetLastError());
 	}
@@ -56,7 +56,7 @@ int main()
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons(PORT);
 
-	if (bind(s, (struct sockaddr *)&server, sizeof(server)) == static_cast<unsigned int>(SOCKET_ERROR))
+	if (bind(mySocket, (struct sockaddr *)&server, sizeof(server)) == static_cast<unsigned int>(SOCKET_ERROR))
 	{
 		printf("Bind failed with error code : %d", WSAGetLastError());
 		exit(EXIT_FAILURE);
@@ -127,7 +127,8 @@ int main()
 			fpsTimer = 0;
 		}
 	}
-
+	closesocket(mySocket);
+	WSACleanup();
 	return 0;
 }
 
@@ -139,7 +140,7 @@ void receiveThread()
 	{
 		printf("Waiting for data..."); 
 		fflush(stdout);
-		if ((recv_len = recvfrom(s, buffer, packet.size(), 0, (struct sockaddr *) &si_other, &slen)) == SOCKET_ERROR)
+		if ((recv_len = recvfrom(mySocket, buffer, packet.size(), 0, (struct sockaddr *) &si_other, &slen)) == SOCKET_ERROR)
 		{
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
 			break;
@@ -148,9 +149,10 @@ void receiveThread()
 		printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
 		printf("received: x %d, y %d\n", packet.x, packet.y);
 		packet = checkMove(packet);
-		player1->setRealPos(packet.x, packet.y);
+		player1->move(packet.x, packet.y);
+		printf("sent: x %d, y %d\n", packet.x, packet.y);
 
-		if (sendto(s, packet.serialize(), packet.size(), 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
+		if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
 		{
 			printf("sendto() failed with error code : %d", WSAGetLastError());
 			break;
@@ -164,8 +166,8 @@ MovePacket checkMove(MovePacket& move)
 	MovePacket result(move.x, move.y);
 	int x = player1->getRealPos().x + move.x;
 	if (x < 64)
-		result.x = x - player1->getRealPos().x;
+		result.x = player1->getRealPos().x - 64;
 	else if (x > Court::w - 64)
-		result.x = player1->getRealPos().x - x;
+		result.x = Court::w - 64 - player1->getRealPos().x;
 	return result;
 }

@@ -31,7 +31,7 @@ using std::stringstream;
 
 void receiveThread();
 
-SOCKET s;
+SOCKET mySocket;
 struct sockaddr_in si_other;
 int slen;
 bool sendData;
@@ -54,7 +54,7 @@ int main()
 	printf("Initialised.\n");
 
 	//create socket
-	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == SOCKET_ERROR)
+	if ((mySocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == SOCKET_ERROR)
 	{
 		printf("socket() failed with error code : %d", WSAGetLastError());
 		exit(EXIT_FAILURE);
@@ -146,8 +146,7 @@ int main()
 			fpsTimer = 0;
 		}
 	}
-
-	closesocket(s);
+	closesocket(mySocket);
 	WSACleanup();
 	return 0;
 }
@@ -162,14 +161,14 @@ void receiveThread()
 		if (sendData)
 		{
 			sendBuff = packet.serialize();
-			if (sendto(s, sendBuff, packet.size(), 0, (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
+			if (sendto(mySocket, sendBuff, packet.size(), 0, (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
 			{
 				printf("sendto() failed with error code : %d", WSAGetLastError());
 				break;
 			}
 			printf("sent: x %d, y %d\n", packet.x, packet.y);
 
-			if (recvfrom(s, receiveBuff, packet.size(), 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
+			if (recvfrom(mySocket, receiveBuff, packet.size(), 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
 			{
 				printf("recvfrom() failed with error code : %d", WSAGetLastError());
 				break;
