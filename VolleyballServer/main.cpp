@@ -26,20 +26,17 @@ using std::string;
 using std::vector;
 using std::stringstream;
 
-void receiveThread();
+void receiveThreadFunc();
 MovePacket checkMove(MovePacket& move);
 
 SOCKET mySocket;
-int recv_len;
-int slen;
-struct sockaddr_in server, si_other;
+struct sockaddr_in server, client;
 Slime* player1;
 
 int main()
 {
 	//network
 	WSADATA wsa;
-	slen = sizeof(si_other);
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
@@ -62,7 +59,7 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-	std::thread networkThread(receiveThread);
+	std::thread networkThread(receiveThreadFunc);
 	networkThread.detach();
 
 	//sfml
@@ -132,27 +129,29 @@ int main()
 	return 0;
 }
 
-void receiveThread()
+void receiveThreadFunc()
 {
 	MovePacket packet;
 	char* buffer = new char[packet.size()];
+	int clientSize = sizeof(client);
+	int bytesReceived;
 	while (true)
 	{
 		printf("Waiting for data..."); 
 		fflush(stdout);
-		if ((recv_len = recvfrom(mySocket, buffer, packet.size(), 0, (struct sockaddr *) &si_other, &slen)) == SOCKET_ERROR)
+		if ((bytesReceived = recvfrom(mySocket, buffer, packet.size(), 0, (struct sockaddr *) &client, &clientSize)) == SOCKET_ERROR)
 		{
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
 			break;
 		}
 		packet = MovePacket(buffer);
-		printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
+		printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 		printf("received: x %d, y %d\n", packet.x, packet.y);
 		packet = checkMove(packet);
 		player1->move(packet.x, packet.y);
 		printf("sent: x %d, y %d\n", packet.x, packet.y);
 
-		if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
+		if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client, clientSize) == SOCKET_ERROR)
 		{
 			printf("sendto() failed with error code : %d", WSAGetLastError());
 			break;

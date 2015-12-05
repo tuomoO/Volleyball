@@ -32,8 +32,7 @@ using std::stringstream;
 void receiveThread();
 
 SOCKET mySocket;
-struct sockaddr_in si_other;
-int slen;
+struct sockaddr_in server;
 bool sendData;
 MovePacket packet;
 Slime *player1, *player2;
@@ -42,7 +41,6 @@ Ball* volleyball;
 int main()
 {
 	//network
-	slen = sizeof(si_other);
 	WSADATA wsa;
 
 	printf("\nInitialising Winsock...");
@@ -61,10 +59,10 @@ int main()
 	}
 
 	//setup address structure
-	memset((char *)&si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(PORT);
-	si_other.sin_addr.S_un.S_addr = inet_addr(SERVER);
+	memset((char *)&server, 0, sizeof(server));
+	server.sin_family = AF_INET;
+	server.sin_port = htons(PORT);
+	server.sin_addr.S_un.S_addr = inet_addr(SERVER);
 
 	std::thread networkThread(receiveThread);
 	networkThread.detach();
@@ -155,20 +153,21 @@ void receiveThread()
 {
 	char* sendBuff;
 	char* receiveBuff = new char[packet.size()];
+	int serverSize = sizeof(server);
 
 	while (true)
 	{
 		if (sendData)
 		{
 			sendBuff = packet.serialize();
-			if (sendto(mySocket, sendBuff, packet.size(), 0, (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
+			if (sendto(mySocket, sendBuff, packet.size(), 0, (struct sockaddr *) &server, serverSize) == SOCKET_ERROR)
 			{
 				printf("sendto() failed with error code : %d", WSAGetLastError());
 				break;
 			}
 			printf("sent: x %d, y %d\n", packet.x, packet.y);
 
-			if (recvfrom(mySocket, receiveBuff, packet.size(), 0, (struct sockaddr *) &si_other, &slen) == SOCKET_ERROR)
+			if (recvfrom(mySocket, receiveBuff, packet.size(), 0, (struct sockaddr *) &server, &serverSize) == SOCKET_ERROR)
 			{
 				printf("recvfrom() failed with error code : %d", WSAGetLastError());
 				break;
