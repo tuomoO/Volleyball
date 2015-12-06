@@ -21,7 +21,8 @@
 
 #include "SFML/Graphics.hpp"
 
-void networkFunc();
+void receiveStates();
+void sendMoves();
 
 using namespace sf;
 using std::string;
@@ -31,7 +32,7 @@ using std::stringstream;
 SOCKET mySocket;
 struct sockaddr_in server;
 bool sendData;
-MovePacket packet;
+MovePacket movePacket;
 
 Game game;
 
@@ -62,8 +63,10 @@ int main()
 	server.sin_addr.S_un.S_addr = inet_addr(SERVER);
 
 	//thread
-	std::thread networkThread(networkFunc);
-	networkThread.detach();
+	std::thread sendThread(sendMoves);
+	sendThread.detach();
+	std::thread receiveThread(receiveStates);
+	receiveThread.detach();
 
 	//sfml
 	RenderWindow window(VideoMode(Court::w, Court::h), "Volleyball client", Style::Close);
@@ -93,12 +96,12 @@ int main()
 		{
 			if (Keyboard::isKeyPressed(Keyboard::Right))
 			{
-				packet = MovePacket(static_cast<int>(0.5f * dt + 0.5f), 0);
+				movePacket = MovePacket(static_cast<int>(0.5f * dt + 0.5f), 0);
 				sendData = true;
 			}
 			else if (Keyboard::isKeyPressed(Keyboard::Left))
 			{
-				packet = MovePacket(static_cast<int>(-0.5f * dt + 0.5f), 0);
+				movePacket = MovePacket(static_cast<int>(-0.5f * dt + 0.5f), 0);
 				sendData = true;
 			}
 		}
@@ -132,34 +135,46 @@ int main()
 	return 0;
 }
 
-void networkFunc()
+void sendMoves()
 {
 	char* sendBuff;
-	char* receiveBuff = new char[packet.size()];
 	int serverSize = sizeof(server);
-
+	
+	movePacket = MovePacket(0, 0, Message::FIRST);
+	sendBuff = movePacket.serialize();
+	if (sendto(mySocket, sendBuff, movePacket.size(), 0, (struct sockaddr *) &server, serverSize) == SOCKET_ERROR)
+		printf("sendto() failed with error code : %d", WSAGetLastError());
 	while (true)
 	{
 		if (sendData)
 		{
-			sendBuff = packet.serialize();
-			if (sendto(mySocket, sendBuff, packet.size(), 0, (struct sockaddr *) &server, serverSize) == SOCKET_ERROR)
-			{
+			sendBuff = movePacket.serialize();
+			if (sendto(mySocket, sendBuff, movePacket.size(), 0, (struct sockaddr *) &server, serverSize) == SOCKET_ERROR)
 				printf("sendto() failed with error code : %d", WSAGetLastError());
-				break;
-			}
-			printf("sent: x %d, y %d\n", packet.x, packet.y);
 
-			if (recvfrom(mySocket, receiveBuff, packet.size(), 0, (struct sockaddr *) &server, &serverSize) == SOCKET_ERROR)
-			{
-				printf("recvfrom() failed with error code : %d", WSAGetLastError());
-				break;
-			}
-			MovePacket received(receiveBuff);
-			printf("received: x %d, y %d\n", received.x, received.y);
-			game.player1()->move(received.x, received.y);
+			printf("sent: ");
+			movePacket.print();
 			sendData = false;
 		}
+	}
+}
+
+void receiveStates()
+{
+	char* receiveBuff = new char[movePacket.size()];
+	int serverSize = sizeof(server);
+
+	while (true)
+	{
+		if (recvfrom(mySocket, receiveBuff, movePacket.size(), 0, (struct sockaddr *) &server, &serverSize) == SOCKET_ERROR)
+		{
+			printf("recvfrom() failed with error code : %d", WSAGetLastError());
+			break;
+		}
+		MovePacket received(receiveBuff);
+		printf("received: ");
+		received.print();
+		game.player1()->move(received.x, received.y);
 	}
 	delete[] receiveBuff;
 }

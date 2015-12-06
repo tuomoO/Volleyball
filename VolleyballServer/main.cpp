@@ -130,10 +130,14 @@ void networkFunc()
 		}
 		packet = MovePacket(buffer);
 		printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-		printf("received: x %d, y %d\n", packet.x, packet.y);
+		printf("received: ");
+		packet.print();
+		
+		//send
 		packet = checkMove(packet);
 		game.player1()->move(packet.x, packet.y);
-		printf("sent: x %d, y %d\n", packet.x, packet.y);
+		printf("sent: ");
+		packet.print();
 
 		if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client, clientSize) == SOCKET_ERROR)
 		{

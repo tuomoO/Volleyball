@@ -1,6 +1,17 @@
 
 #pragma once
 
+enum Message
+{
+	NOTHING,
+	FIRST,
+	QUIT,
+	PLAYER1,
+	PLAYER2
+};
+
+static Message messageCheck(int message);
+
 class Packet
 {
 public:
@@ -8,6 +19,7 @@ public:
 	~Packet() = default;
 	virtual char* serialize() = 0;
 	virtual int size() = 0;
+	virtual void print() = 0;
 };
 
 class MovePacket : public Packet
@@ -15,14 +27,16 @@ class MovePacket : public Packet
 public:
 	MovePacket();
 	MovePacket(MovePacket& other);
-	MovePacket(int _x, int _y);
+	MovePacket(int _x, int _y, Message _message = Message::NOTHING);
 	MovePacket(char* data);
 	~MovePacket() = default;
 
 	char* serialize();
 	int size();
+	void print();
 
 	int x, y;
+	Message message;
 };
 
 class StatePacket : public Packet
@@ -34,6 +48,7 @@ class StatePacket : public Packet
 
 	char* serialize();
 	int size();
+	void print();
 
 	int player, x1, y1, x2, y2, ballx, bally;
 };

@@ -2,10 +2,34 @@
 #include "Packet.h"
 
 #include <ws2tcpip.h>
+#include <iostream>
+
+using namespace std;
+
+static Message messageCheck(int message)
+{
+	switch (message)
+	{
+	case NOTHING:
+		break;
+	case FIRST:
+		break;
+	case QUIT:
+		break;
+	case PLAYER1:
+		break;
+	case PLAYER2:
+		break;
+	default:
+		cout << "Invalid message value: " << message << endl;
+		return Message::NOTHING;
+	}
+	return static_cast<Message>(message);
+}
 
 //MovePacket
 MovePacket::MovePacket()
-: x(0), y(0)
+: x(0), y(0), message(Message::NOTHING)
 {
 }
 
@@ -13,10 +37,11 @@ MovePacket::MovePacket(MovePacket& other)
 {
 	x = other.x;
 	y = other.y;
+	message = other.message;
 }
 
-MovePacket::MovePacket(int _x, int _y)
-: x(_x), y(_y)
+MovePacket::MovePacket(int _x, int _y, Message _message)
+: x(_x), y(_y), message(_message)
 {
 }
 
@@ -29,6 +54,9 @@ MovePacket::MovePacket(char* data)
 
 	memcpy(&temp, &data[4], 4);
 	y = static_cast<int>(ntohl(temp));
+
+	memcpy(&temp, &data[8], 4);
+	message = messageCheck(static_cast<int>(ntohl(temp)));
 }
 
 char* MovePacket::serialize()
@@ -40,15 +68,22 @@ char* MovePacket::serialize()
 	i += sizeof(x);
 
 	*((u_long*)(&result[i])) = htonl(y);
+	i += sizeof(y);
+
+	*((u_long*)(&result[i])) = htonl(static_cast<int>(message));
 
 	return result;
 }
 
 int MovePacket::size()
 {
-	return 8;
+	return 12;
 }
 
+void MovePacket::print()
+{
+	cout << "x " << x << ", y " << y << ", message " << message << endl;
+}
 
 //StatePacket
 StatePacket::StatePacket()
@@ -104,4 +139,9 @@ char* StatePacket::serialize()
 int StatePacket::size()
 {
 	return 28;
+}
+
+void StatePacket::print()
+{
+
 }
