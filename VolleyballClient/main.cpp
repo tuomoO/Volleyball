@@ -21,14 +21,12 @@
 
 #include "SFML/Graphics.hpp"
 
-void receiveThread();
+void networkFunc();
 
 using namespace sf;
 using std::string;
 using std::vector;
 using std::stringstream;
-
-void receiveThread();
 
 SOCKET mySocket;
 struct sockaddr_in server;
@@ -36,8 +34,6 @@ bool sendData;
 MovePacket packet;
 
 Game game;
-//Slime *player1, *player2;
-//Ball* volleyball;
 
 int main()
 {
@@ -65,7 +61,8 @@ int main()
 	server.sin_port = htons(PORT);
 	server.sin_addr.S_un.S_addr = inet_addr(SERVER);
 
-	std::thread networkThread(receiveThread);
+	//thread
+	std::thread networkThread(networkFunc);
 	networkThread.detach();
 
 	//sfml
@@ -135,7 +132,7 @@ int main()
 	return 0;
 }
 
-void receiveThread()
+void networkFunc()
 {
 	char* sendBuff;
 	char* receiveBuff = new char[packet.size()];

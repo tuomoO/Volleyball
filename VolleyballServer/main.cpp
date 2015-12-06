@@ -25,7 +25,7 @@ using std::string;
 using std::vector;
 using std::stringstream;
 
-void receiveThreadFunc();
+void networkFunc();
 MovePacket checkMove(MovePacket& move);
 
 Game game;
@@ -58,7 +58,7 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-	std::thread networkThread(receiveThreadFunc);
+	std::thread networkThread(networkFunc);
 	networkThread.detach();
 
 	//sfml
@@ -113,7 +113,7 @@ int main()
 	return 0;
 }
 
-void receiveThreadFunc()
+void networkFunc()
 {
 	MovePacket packet;
 	char* buffer = new char[packet.size()];
