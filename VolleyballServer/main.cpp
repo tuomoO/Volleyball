@@ -25,17 +25,21 @@ using std::string;
 using std::vector;
 using std::stringstream;
 
-void networkFunc();
+void sendStates();
+void receiveMoves();
 MovePacket checkMove(MovePacket& move);
 
 Game game;
 SOCKET mySocket;
 struct sockaddr_in server, client;
+MovePacket packet;
+bool sendData;
 
 int main()
 {
 	//network
 	WSADATA wsa;
+	sendData = false;
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
@@ -58,8 +62,10 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-	std::thread networkThread(networkFunc);
-	networkThread.detach();
+	std::thread sendThread(sendStates);
+	sendThread.detach();
+	std::thread receiveThread(receiveMoves);
+	receiveThread.detach();
 
 	//sfml
 	RenderWindow window(VideoMode(Court::w, Court::h), "Volleyball client", Style::Close);
@@ -113,37 +119,40 @@ int main()
 	return 0;
 }
 
-void networkFunc()
+void sendStates()
 {
-	MovePacket packet;
+	int clientSize = sizeof(client);
+	while (true)
+	{
+		if (sendData)
+		{
+			packet = checkMove(packet);
+			game.player1()->move(packet.x, packet.y);
+			printf("sent: ");
+			packet.print();
+
+			if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client, clientSize) == SOCKET_ERROR)
+				printf("sendto() failed with error code : %d", WSAGetLastError());
+			sendData = false;
+		}
+	}
+}
+
+void receiveMoves()
+{
 	char* buffer = new char[packet.size()];
 	int clientSize = sizeof(client);
 	int bytesReceived;
 	while (true)
 	{
-		printf("Waiting for data..."); 
-		fflush(stdout);
+		//fflush(stdout);
 		if ((bytesReceived = recvfrom(mySocket, buffer, packet.size(), 0, (struct sockaddr *) &client, &clientSize)) == SOCKET_ERROR)
-		{
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
-			break;
-		}
 		packet = MovePacket(buffer);
 		printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 		printf("received: ");
 		packet.print();
-		
-		//send
-		packet = checkMove(packet);
-		game.player1()->move(packet.x, packet.y);
-		printf("sent: ");
-		packet.print();
-
-		if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client, clientSize) == SOCKET_ERROR)
-		{
-			printf("sendto() failed with error code : %d", WSAGetLastError());
-			break;
-		}
+		sendData = true;
 	}
 	delete[] buffer;
 }
