@@ -14,8 +14,7 @@
 #define SERVER "127.0.0.1"
 #define PORT 8888
 
-#include "Slime.h"
-#include "Ball.h"
+#include "Game.h"
 #include "Court.h"
 #include "Packet.h"
 
@@ -29,9 +28,9 @@ using std::stringstream;
 void receiveThreadFunc();
 MovePacket checkMove(MovePacket& move);
 
+Game game;
 SOCKET mySocket;
 struct sockaddr_in server, client;
-Slime* player1;
 
 int main()
 {
@@ -65,16 +64,6 @@ int main()
 	//sfml
 	RenderWindow window(VideoMode(Court::w, Court::h), "Volleyball client", Style::Close);
 	window.setFramerateLimit(60);
-	Texture texture;
-	texture.loadFromFile("circle.png");
-
-	Slime p1(&texture, Color(0, 255, 0));
-	p1.setRealPos(64, Court::h);
-	player1 = &p1;
-	Ball ball(&texture);
-	ball.setRealPos(Court::w / 2, Court::h / 2);
-	Slime p2(&texture, Color(255, 0, 0));
-	p2.setRealPos(Court::w - 64, Court::h);
 
 	//time
 	LARGE_INTEGER startTime, endTime, frequency, milliSeconds;
@@ -95,15 +84,10 @@ int main()
 				window.close();
 		}
 
-		p1.update();
-		p2.update();
-		ball.update();
-
-		//draw
+		// update + draw
+		game.update();
 		window.clear(Color(0u, 127u, 255u));
-		window.draw(p1.getShape());
-		window.draw(p2.getShape());
-		window.draw(ball.getShape());
+		game.draw(&window);
 		window.display();
 
 		//time
@@ -148,7 +132,7 @@ void receiveThreadFunc()
 		printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 		printf("received: x %d, y %d\n", packet.x, packet.y);
 		packet = checkMove(packet);
-		player1->move(packet.x, packet.y);
+		game.player1()->move(packet.x, packet.y);
 		printf("sent: x %d, y %d\n", packet.x, packet.y);
 
 		if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client, clientSize) == SOCKET_ERROR)
@@ -163,10 +147,10 @@ void receiveThreadFunc()
 MovePacket checkMove(MovePacket& move)
 {
 	MovePacket result(move.x, move.y);
-	int x = player1->getRealPos().x + move.x;
+	int x = game.player1()->getRealPos().x + move.x;
 	if (x < 64)
-		result.x = player1->getRealPos().x - 64;
+		result.x = game.player1()->getRealPos().x - 64;
 	else if (x > Court::w - 64)
-		result.x = Court::w - 64 - player1->getRealPos().x;
+		result.x = Court::w - 64 - game.player1()->getRealPos().x;
 	return result;
 }

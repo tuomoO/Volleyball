@@ -6,6 +6,7 @@
 class Ball : public GameObject
 {
 public:
+	Ball();
 	Ball(sf::Texture* texture);
 	~Ball();
 

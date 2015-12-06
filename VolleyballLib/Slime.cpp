@@ -3,6 +3,11 @@
 
 using namespace sf;
 
+Slime::Slime()
+{
+
+}
+
 Slime::Slime(Texture* texture, sf::Color color) : GameObject(texture)
 {
 	mShape.setSize(Vector2f(128, 64));

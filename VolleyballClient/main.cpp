@@ -15,8 +15,7 @@
 #define BUFLEN 512
 #define PORT 8888
 
-#include "Slime.h"
-#include "Ball.h"
+#include "Game.h"
 #include "Court.h"
 #include "Packet.h"
 
@@ -35,8 +34,10 @@ SOCKET mySocket;
 struct sockaddr_in server;
 bool sendData;
 MovePacket packet;
-Slime *player1, *player2;
-Ball* volleyball;
+
+Game game;
+//Slime *player1, *player2;
+//Ball* volleyball;
 
 int main()
 {
@@ -69,18 +70,7 @@ int main()
 
 	//sfml
 	RenderWindow window(VideoMode(Court::w, Court::h), "Volleyball client", Style::Close);
-	window.setFramerateLimit(60);
-	Texture texture;
-	texture.loadFromFile("circle.png");
-
-	Slime p1(&texture, Color(0, 255, 0));
-	p1.setRealPos(64, Court::h);
-	player1 = &p1;
-	Ball ball(&texture);
-	ball.setRealPos(Court::w / 2, Court::h / 2);
-	Slime p2(&texture, Color(255, 0, 0));
-	p2.setRealPos(Court::w - 64, Court::h);
-	player2 = &p2;
+	window.setFramerateLimit(60);	
 
 	//time
 	LARGE_INTEGER startTime, endTime, frequency, milliSeconds;
@@ -115,15 +105,11 @@ int main()
 				sendData = true;
 			}
 		}
-		p1.update();
-		p2.update();
-		ball.update();
 
-		//draw
+		// update + draw
+		game.update();
 		window.clear(Color(0u, 127u, 255u));
-		window.draw(p1.getShape());
-		window.draw(p2.getShape());
-		window.draw(ball.getShape());
+		game.draw(&window);
 		window.display();
 
 		//time
@@ -174,7 +160,7 @@ void receiveThread()
 			}
 			MovePacket received(receiveBuff);
 			printf("received: x %d, y %d\n", received.x, received.y);
-			player1->move(received.x, received.y);
+			game.player1()->move(received.x, received.y);
 			sendData = false;
 		}
 	}

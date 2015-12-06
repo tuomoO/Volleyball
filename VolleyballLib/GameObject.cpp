@@ -4,6 +4,11 @@
 
 using namespace sf;
 
+GameObject::GameObject()
+{
+	mRealPos = Vector2i(0, 0);
+}
+
 GameObject::GameObject(Texture* texture)
 {
 	mShape.setTexture(texture);

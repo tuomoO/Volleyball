@@ -6,6 +6,7 @@
 class GameObject
 {
 public:
+	GameObject();
 	GameObject(sf::Texture* texture);
 	~GameObject();
 
