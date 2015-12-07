@@ -16,16 +16,19 @@ public:
 	Game();
 	~Game();
 
-	void update(StatePacket state);
+	void update(float dt);
+	void updateState(StatePacket state);
 	void draw(sf::RenderWindow* window);
 	void selectLocalPlayer(Message message);
 	int getLocalPlayerNumber();
-
 	Slime* getLocalPlayer();
 	Slime* player1();
 	Slime* player2();
 	Ball* ball();
 	StatePacket getState();
+	void start();
+	void stop();
+	bool isRunning();
 
 private:
 	sf::Texture mTexture;
@@ -34,5 +37,6 @@ private:
 	Ball mBall;
 	GameObject mFence;
 	int mLocalPlayer;
+	bool mRunning;
 
 };

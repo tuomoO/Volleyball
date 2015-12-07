@@ -39,22 +39,8 @@ Vector2i GameObject::getRealPos()
 	return mRealPos;
 }
 
-/*
-Vector2f GameObject::getLocalPos()
+void GameObject::draw(RenderWindow* window)
 {
-	return mLocalPos;
-}
-*/
-
-/*
-void GameObject::move(float x)
-{
-	mLocalPos += Vector2f(x, 0);
-}
-*/
-
-void GameObject::update()
-{
-	// TODO Local -> real
 	mShape.setPosition(mRealPos.x, mRealPos.y);
+	window->draw(mShape);
 }

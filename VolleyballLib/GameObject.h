@@ -12,15 +12,12 @@ public:
 
 	sf::RectangleShape& getShape();
 	void setRealPos(int x, int y);
-	//void setVisualPos(float x, float y);
 	sf::Vector2i getRealPos();
-	//sf::Vector2f getLocalPos();
-	void move(int x, int y);
-	void update();
+	void move(int x, int y = 0);
+	void draw(sf::RenderWindow* window);
 
 protected:
 	sf::Vector2i mRealPos;
-	//sf::Vector2f mLocalPos;
 
 	sf::RectangleShape mShape;
 };

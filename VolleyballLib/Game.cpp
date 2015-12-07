@@ -23,8 +23,8 @@ Game::Game()
 	mFence.setRealPos(Court::w / 2, Court::h);
 	mFence.getShape().setOrigin(8, 96);
 	mFence.getShape().setFillColor(Color(64, 64, 64));
-	mFence.update();
 	mLocalPlayer = 0;
+	mRunning = false;
 }
 
 Game::~Game()
@@ -32,7 +32,13 @@ Game::~Game()
 
 }
 
-void Game::update(StatePacket packet)
+void Game::update(float dt)
+{
+	mPlayer1.update(dt);
+	mPlayer2.update(dt);
+}
+
+void Game::updateState(StatePacket packet)
 {
 	mPlayer1.setRealPos(packet.x1, packet.y1);
 	mPlayer2.setRealPos(packet.x2, packet.y2);
@@ -42,13 +48,10 @@ void Game::update(StatePacket packet)
 void Game::draw(sf::RenderWindow* window)
 {
 	window->clear(sf::Color(0u, 127u, 255u));
-	mPlayer1.update();
-	mPlayer2.update();
-	mBall.update();
-	window->draw(mPlayer1.getShape());
-	window->draw(mPlayer2.getShape());
-	window->draw(mBall.getShape());
-	window->draw(mFence.getShape());
+	mPlayer1.draw(window);
+	mPlayer2.draw(window);
+	mBall.draw(window);
+	mFence.draw(window);
 	window->display();
 }
 
@@ -100,4 +103,19 @@ StatePacket Game::getState()
 	return StatePacket(mPlayer1.getRealPos().x, mPlayer1.getRealPos().y,
 		mPlayer2.getRealPos().x, mPlayer2.getRealPos().y,
 		mBall.getRealPos().x, mBall.getRealPos().y);
+}
+
+void Game::start()
+{
+	mRunning = true;
+}
+
+void Game::stop()
+{
+	mRunning = false;
+}
+
+bool Game::isRunning()
+{
+	return mRunning;
 }

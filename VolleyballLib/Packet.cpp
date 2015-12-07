@@ -20,6 +20,8 @@ static Message messageCheck(int message)
 		break;
 	case PLAYER2:
 		break;
+	case JUMP:
+		break;
 	default:
 		cout << "Invalid message value: " << message << endl;
 		return Message::NOTHING;
@@ -29,19 +31,18 @@ static Message messageCheck(int message)
 
 //MovePacket
 MovePacket::MovePacket()
-: x(0), y(0), message(Message::NOTHING)
+: x(0), message(Message::NOTHING)
 {
 }
 
 MovePacket::MovePacket(MovePacket& other)
 {
 	x = other.x;
-	y = other.y;
 	message = other.message;
 }
 
-MovePacket::MovePacket(int _x, int _y, Message _message)
-: x(_x), y(_y), message(_message)
+MovePacket::MovePacket(int _x, Message _message)
+: x(_x), message(_message)
 {
 }
 
@@ -53,10 +54,6 @@ MovePacket::MovePacket(char* data)
 	memcpy(&temp, &data[i], sizeof(x));
 	x = static_cast<int>(ntohl(temp));
 	i += sizeof(x);
-
-	memcpy(&temp, &data[i], sizeof(y));
-	y = static_cast<int>(ntohl(temp));
-	i += sizeof(y);
 
 	memcpy(&temp, &data[i], sizeof(message));
 	message = messageCheck(static_cast<int>(ntohl(temp)));
@@ -71,9 +68,6 @@ char* MovePacket::serialize()
 	*((u_long*)(&result[i])) = htonl(x);
 	i += sizeof(x);
 
-	*((u_long*)(&result[i])) = htonl(y);
-	i += sizeof(y);
-
 	*((u_long*)(&result[i])) = htonl(static_cast<int>(message));
 
 	return result;
@@ -81,12 +75,12 @@ char* MovePacket::serialize()
 
 int MovePacket::size()
 {
-	return sizeof(x) + sizeof(y) + sizeof(message);
+	return sizeof(x) + sizeof(message);
 }
 
 void MovePacket::print()
 {
-	cout << "x " << x << ", y " << y << ", message " << message << endl;
+	cout << "x " << x << ", message " << message << endl;
 }
 
 //StatePacket

@@ -67,6 +67,7 @@ int main()
 	jumpKey = Keyboard::W;
 
 	//thread
+	game.start();
 	std::thread sendThread(sendMoves);
 	sendThread.detach();
 	std::thread receiveThread(receiveStates);
@@ -94,49 +95,61 @@ int main()
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
+			{
+				game.stop();
 				window.close();
-		}
-
-		if (window.hasFocus())
-		{
-		}
-
-		if (initialised)
-		{
-			if (Keyboard::isKeyPressed(rightKey))
-			{
-				movePacket = MovePacket(static_cast<int>(0.5f * dt + 0.5f), 0);
-				sendData = true;
-			}
-			else if (Keyboard::isKeyPressed(leftKey))
-			{
-				movePacket = MovePacket(static_cast<int>(-0.5f * dt + 0.5f), 0);
-				sendData = true;
 			}
 		}
-
-		game.draw(&window);
-
-		//time
-		QueryPerformanceCounter(&endTime);
-		milliSeconds.QuadPart = endTime.QuadPart - startTime.QuadPart;
-		milliSeconds.QuadPart *= 1000;
-		dt = milliSeconds.QuadPart / static_cast<float>(frequency.QuadPart);
-
-		fpsTimer += dt;
-		if (fpsTimer > 100)
+		if (game.isRunning())
 		{
-			fps = (0.8f * fps + 0.2f * ((1.0f / dt) * 1000));
-			stringstream framesStream;
-			framesStream.precision(2);
-			framesStream << std::setfill('0') << std::setw(4) << std::fixed << fps;
-			stringstream playerNumber;
-			playerNumber << game.getLocalPlayerNumber();
+			if (window.hasFocus())
+			{
+			}
 
-			window.setTitle( windowTitleBase + playerNumber.str() + " (fps: " + framesStream.str() + ")");
-			fpsTimer = 0;
+			if (initialised)
+			{
+				if (Keyboard::isKeyPressed(rightKey))
+				{
+					movePacket.x = static_cast<int>(0.5f * dt + 0.5f);
+					sendData = true;
+				}
+				else if (Keyboard::isKeyPressed(leftKey))
+				{
+					movePacket.x = static_cast<int>(-0.5f * dt + 0.5f);
+					sendData = true;
+				}
+				if (Keyboard::isKeyPressed(jumpKey))
+				{
+					movePacket.message = Message::JUMP;
+					sendData = true;
+				}
+			}
+
+			game.draw(&window);
+
+			//time
+			QueryPerformanceCounter(&endTime);
+			milliSeconds.QuadPart = endTime.QuadPart - startTime.QuadPart;
+			milliSeconds.QuadPart *= 1000;
+			dt = milliSeconds.QuadPart / static_cast<float>(frequency.QuadPart);
+
+			fpsTimer += dt;
+			if (fpsTimer > 100)
+			{
+				fps = (0.8f * fps + 0.2f * ((1.0f / dt) * 1000));
+				stringstream framesStream;
+				framesStream.precision(2);
+				framesStream << std::setfill('0') << std::setw(4) << std::fixed << fps;
+				stringstream playerNumber;
+				playerNumber << game.getLocalPlayerNumber();
+
+				window.setTitle(windowTitleBase + playerNumber.str() + " (fps: " + framesStream.str() + ")");
+				fpsTimer = 0;
+			}
 		}
 	}
+	sendThread.join();
+	receiveThread.join();
 	closesocket(mySocket);
 	WSACleanup();
 	return 0;
@@ -148,12 +161,12 @@ void sendMoves()
 	int serverSize = sizeof(server);
 	
 	writeMutex.lock();
-	movePacket = MovePacket(0, 0, Message::FIRST);
+	movePacket = MovePacket(0, Message::FIRST);
 	sendBuff = movePacket.serialize();
 	if (sendto(mySocket, sendBuff, movePacket.size(), 0, (struct sockaddr *) &server, serverSize) == SOCKET_ERROR)
 		printf("sendto() failed with error code : %d", WSAGetLastError());
 	writeMutex.unlock();
-	while (true)
+	while (game.isRunning())
 	{
 		if (sendData)
 		{
@@ -163,6 +176,7 @@ void sendMoves()
 				printf("sendto() failed with error code : %d", WSAGetLastError());
 			printf("sent: ");
 			movePacket.print();
+			movePacket = MovePacket();
 			writeMutex.unlock();
 			sendData = false;
 		}
@@ -175,7 +189,7 @@ void receiveStates()
 	char* receiveBuff = new char[state.size()];
 	int serverSize = sizeof(server);
 
-	while (true)
+	while (game.isRunning())
 	{
 		if (recvfrom(mySocket, receiveBuff, state.size(), 0, (struct sockaddr *) &server, &serverSize) == SOCKET_ERROR)
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
@@ -184,7 +198,7 @@ void receiveStates()
 		printf("received: ");
 		state.print();
 		writeMutex.unlock();
-		game.update(state);
+		game.updateState(state);
 		if (state.message == Message::PLAYER1 || state.message == Message::PLAYER2)
 		{
 			game.selectLocalPlayer(state.message);

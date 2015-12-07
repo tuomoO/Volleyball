@@ -7,7 +7,8 @@ enum Message
 	FIRST,
 	QUIT,
 	PLAYER1,
-	PLAYER2
+	PLAYER2,
+	JUMP
 };
 
 static Message messageCheck(int message);
@@ -27,7 +28,7 @@ class MovePacket : public Packet
 public:
 	MovePacket();
 	MovePacket(MovePacket& other);
-	MovePacket(int _x, int _y, Message _message = Message::NOTHING);
+	MovePacket(int _x, Message _message = Message::NOTHING);
 	MovePacket(char* data);
 	~MovePacket() = default;
 
@@ -35,7 +36,7 @@ public:
 	int size();
 	void print();
 
-	int x, y;
+	int x;
 	Message message;
 };
 

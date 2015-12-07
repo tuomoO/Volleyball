@@ -10,6 +10,11 @@ public:
 	Slime(sf::Texture* texture, sf::Color color);
 	~Slime();
 
+	void jump();
+	void update(float dt);
+
 private:
+	bool mJumping;
+	int mJumpHeight;
 
 };
