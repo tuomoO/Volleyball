@@ -32,6 +32,7 @@ private:
 	Slime mPlayer1;
 	Slime mPlayer2;
 	Ball mBall;
+	GameObject mFence;
 	int mLocalPlayer;
 
 };

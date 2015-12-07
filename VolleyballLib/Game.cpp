@@ -18,6 +18,12 @@ Game::Game()
 	mBall.setRealPos(Court::w / 2, Court::h / 2);
 	mPlayer2 = Slime(&mTexture, Color(255, 0, 0));
 	mPlayer2.setRealPos(Court::w - 64, Court::h);
+	
+	mFence.getShape().setSize(Vector2f(16, 96));
+	mFence.setRealPos(Court::w / 2, Court::h);
+	mFence.getShape().setOrigin(8, 96);
+	mFence.getShape().setFillColor(Color(64, 64, 64));
+	mFence.update();
 	mLocalPlayer = 0;
 }
 
@@ -42,6 +48,7 @@ void Game::draw(sf::RenderWindow* window)
 	window->draw(mPlayer1.getShape());
 	window->draw(mPlayer2.getShape());
 	window->draw(mBall.getShape());
+	window->draw(mFence.getShape());
 	window->display();
 }
 

@@ -218,13 +218,24 @@ MovePacket checkMove(MovePacket& move, int player)
 		pos = game.player1()->getRealPos();
 	else
 		pos = game.player2()->getRealPos();
-
 	MovePacket result(move.x, move.y);
+
+	//borders
 	int x = pos.x + move.x;
 	if (x < 64)
 		result.x = 64 - pos.x;
 	else if (x > Court::w - 64)
 		result.x = Court::w - 64 - pos.x;
+	else
+	{
+		//fence
+		int temp = Court::w / 2 - 8 - 64;
+		if (player == 1 && x > temp)
+			result.x = temp - pos.x;
+		temp = Court::w / 2 + 8 + 64;
+		if (player == 2 && x < temp)
+			result.x = temp - pos.x;
+	}
 	return result;
 }
 
