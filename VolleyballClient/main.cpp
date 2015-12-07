@@ -1,39 +1,32 @@
 
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-
-#include <stdio.h>
-#include <winsock2.h>
-#include <Windows.h>
-#include <time.h>
-#include <sstream>
-#include <iomanip>
-#include <thread>
-
-#pragma comment(lib,"ws2_32.lib")
 #define SERVER "127.0.0.1"
-#define BUFLEN 512
 #define PORT 8888
 
+#include "Network.h"
 #include "Game.h"
 #include "Court.h"
 #include "Packet.h"
 
 #include "SFML/Graphics.hpp"
 
+#include <time.h>
+#include <sstream>
+#include <iomanip>
+
 void receiveStates();
 void sendMoves();
 void useAlternativeControls();
 
-using namespace sf;
 using std::string;
 using std::vector;
 using std::stringstream;
+using sf::Keyboard;
 
 SOCKET mySocket;
 struct sockaddr_in server;
 bool sendData;
 MovePacket movePacket;
+std::mutex writeMutex;
 
 Game game;
 bool initialised;
@@ -81,7 +74,7 @@ int main()
 
 	//sfml
 	string windowTitleBase = "Volleyball client, player ";
-	RenderWindow window(VideoMode(Court::w, Court::h), windowTitleBase, Style::Close);
+	sf::RenderWindow window(sf::VideoMode(Court::w, Court::h), windowTitleBase, sf::Style::Close);
 	window.setFramerateLimit(60);	
 
 	//time
@@ -121,10 +114,8 @@ int main()
 				sendData = true;
 			}
 		}
-		// update + draw
-		window.clear(Color(0u, 127u, 255u));
+
 		game.draw(&window);
-		window.display();
 
 		//time
 		QueryPerformanceCounter(&endTime);
@@ -156,20 +147,23 @@ void sendMoves()
 	char* sendBuff;
 	int serverSize = sizeof(server);
 	
+	writeMutex.lock();
 	movePacket = MovePacket(0, 0, Message::FIRST);
 	sendBuff = movePacket.serialize();
 	if (sendto(mySocket, sendBuff, movePacket.size(), 0, (struct sockaddr *) &server, serverSize) == SOCKET_ERROR)
 		printf("sendto() failed with error code : %d", WSAGetLastError());
+	writeMutex.unlock();
 	while (true)
 	{
 		if (sendData)
 		{
+			writeMutex.lock();
 			sendBuff = movePacket.serialize();
 			if (sendto(mySocket, sendBuff, movePacket.size(), 0, (struct sockaddr *) &server, serverSize) == SOCKET_ERROR)
 				printf("sendto() failed with error code : %d", WSAGetLastError());
-
 			printf("sent: ");
 			movePacket.print();
+			writeMutex.unlock();
 			sendData = false;
 		}
 	}
@@ -186,8 +180,10 @@ void receiveStates()
 		if (recvfrom(mySocket, receiveBuff, state.size(), 0, (struct sockaddr *) &server, &serverSize) == SOCKET_ERROR)
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
 		state = StatePacket(receiveBuff);
+		writeMutex.lock();
 		printf("received: ");
 		state.print();
+		writeMutex.unlock();
 		game.update(state);
 		if (state.message == Message::PLAYER1 || state.message == Message::PLAYER2)
 		{

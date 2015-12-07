@@ -74,6 +74,7 @@
     <ClInclude Include="Court.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameObject.h" />
+    <ClInclude Include="Network.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="Slime.h" />
   </ItemGroup>

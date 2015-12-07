@@ -35,12 +35,14 @@ void Game::update(StatePacket packet)
 
 void Game::draw(sf::RenderWindow* window)
 {
+	window->clear(sf::Color(0u, 127u, 255u));
 	mPlayer1.update();
 	mPlayer2.update();
 	mBall.update();
 	window->draw(mPlayer1.getShape());
 	window->draw(mPlayer2.getShape());
 	window->draw(mBall.getShape());
+	window->display();
 }
 
 void Game::selectLocalPlayer(Message message)

@@ -1,26 +1,19 @@
 
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-
-#include <stdio.h>
-#include <winsock2.h>
-#include <Windows.h>
-#include <time.h>
-#include <sstream>
-#include <iomanip>
-#include <thread>
-
-#pragma comment(lib,"ws2_32.lib") 
 #define SERVER "127.0.0.1"
 #define PORT 8888
 
+#include "Network.h"
 #include "Game.h"
 #include "Court.h"
 #include "Packet.h"
 
 #include "SFML/Graphics.hpp"
 
-using namespace sf;
+#include <time.h>
+#include <sstream>
+#include <iomanip>
+
+using sf::Vector2i;
 using std::string;
 using std::vector;
 using std::stringstream;
@@ -30,13 +23,14 @@ void receiveMoves();
 MovePacket checkMove(MovePacket& move, int player);
 int compareClient(sockaddr_in const &other);
 
-Game game;
 SOCKET mySocket;
 struct sockaddr_in server, client1, client2;
-bool sendData;
 int clientCount;
 bool initializeClient1;
 bool initializeClient2;
+bool sendData;
+Game game;
+std::mutex writeMutex;
 
 int main()
 {
@@ -74,7 +68,7 @@ int main()
 	receiveThread.detach();
 
 	//sfml
-	RenderWindow window(VideoMode(Court::w, Court::h), "Volleyball client", Style::Close);
+	sf::RenderWindow window(sf::VideoMode(Court::w, Court::h), "Volleyball client", sf::Style::Close);
 	window.setFramerateLimit(60);
 
 	//time
@@ -96,10 +90,7 @@ int main()
 				window.close();
 		}
 
-		// update + draw
-		window.clear(Color(0u, 127u, 255u));
 		game.draw(&window);
-		window.display();
 
 		//time
 		QueryPerformanceCounter(&endTime);
@@ -156,8 +147,10 @@ void sendStates()
 						initializeClient2 = false;
 				}
 			}
+			writeMutex.lock();
 			printf("sent: ");
 			packet.print();
+			writeMutex.unlock();
 			sendData = false;
 		}
 	}
