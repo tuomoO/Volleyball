@@ -28,18 +28,20 @@ using std::stringstream;
 void sendStates();
 void receiveMoves();
 MovePacket checkMove(MovePacket& move);
+int compareClient(sockaddr_in const &other);
 
 Game game;
 SOCKET mySocket;
-struct sockaddr_in server, client;
-MovePacket packet;
+struct sockaddr_in server, client1, client2;
 bool sendData;
+int clientCount;
 
 int main()
 {
 	//network
 	WSADATA wsa;
 	sendData = false;
+	clientCount = 0;
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
@@ -91,7 +93,6 @@ int main()
 		}
 
 		// update + draw
-		game.update();
 		window.clear(Color(0u, 127u, 255u));
 		game.draw(&window);
 		window.display();
@@ -121,18 +122,24 @@ int main()
 
 void sendStates()
 {
-	int clientSize = sizeof(client);
+	int clientSize = sizeof(client1);
 	while (true)
 	{
 		if (sendData)
 		{
-			packet = checkMove(packet);
-			game.player1()->move(packet.x, packet.y);
+			StatePacket packet = game.getState();
+			if (clientCount > 0)
+			{
+				if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client1, clientSize) == SOCKET_ERROR)
+					printf("sendto() player 1 failed with error code : %d", WSAGetLastError());
+				if (clientCount > 1)
+				{
+					if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client2, clientSize) == SOCKET_ERROR)
+						printf("sendto() player 2 failed with error code : %d", WSAGetLastError());
+				}
+			}
 			printf("sent: ");
 			packet.print();
-
-			if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client, clientSize) == SOCKET_ERROR)
-				printf("sendto() failed with error code : %d", WSAGetLastError());
 			sendData = false;
 		}
 	}
@@ -140,19 +147,53 @@ void sendStates()
 
 void receiveMoves()
 {
+	MovePacket packet;
 	char* buffer = new char[packet.size()];
-	int clientSize = sizeof(client);
+	
+	struct sockaddr_in tempClient;
+	int clientSize = sizeof(tempClient);
 	int bytesReceived;
 	while (true)
 	{
-		//fflush(stdout);
-		if ((bytesReceived = recvfrom(mySocket, buffer, packet.size(), 0, (struct sockaddr *) &client, &clientSize)) == SOCKET_ERROR)
+		if ((bytesReceived = recvfrom(mySocket, buffer, packet.size(), 0, (struct sockaddr *) &tempClient, &clientSize)) == SOCKET_ERROR)
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
 		packet = MovePacket(buffer);
-		printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 		printf("received: ");
 		packet.print();
-		sendData = true;
+
+		//client check
+		int player = 0;
+		if (clientCount == 0)
+		{
+			client1 = tempClient;
+			player = 1;
+			clientCount++;
+		}
+		else if (clientCount == 1 && compareClient(tempClient) != 1)
+		{
+			client2 = tempClient;
+			player = 2;
+			clientCount++;
+		}
+		else
+			player = compareClient(tempClient);
+		
+		printf("from ");
+		if (player == 0)
+			printf("%s:%d\n", inet_ntoa(tempClient.sin_addr), ntohs(tempClient.sin_port));
+		else
+			printf("player %d\n", player);
+
+		//update
+		if (player > 0)
+		{
+			packet = checkMove(packet);
+			if (player == 1)
+				game.player1()->move(packet.x, packet.y);
+			else
+				game.player2()->move(packet.x, packet.y);
+			sendData = true;
+		}
 	}
 	delete[] buffer;
 }
@@ -166,4 +207,14 @@ MovePacket checkMove(MovePacket& move)
 	else if (x > Court::w - 64)
 		result.x = Court::w - 64 - game.player1()->getRealPos().x;
 	return result;
+}
+
+int compareClient(sockaddr_in const &other)
+{ 
+	int player = 0;
+	if (client1.sin_addr.S_un.S_addr == other.sin_addr.S_un.S_addr && client1.sin_port == other.sin_port)
+		player = 1;
+	else if (client2.sin_addr.S_un.S_addr == other.sin_addr.S_un.S_addr && client2.sin_port == other.sin_port)
+		player = 2;
+	return player;
 }

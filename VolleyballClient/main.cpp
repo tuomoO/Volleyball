@@ -107,7 +107,6 @@ int main()
 		}
 
 		// update + draw
-		game.update();
 		window.clear(Color(0u, 127u, 255u));
 		game.draw(&window);
 		window.display();
@@ -161,20 +160,18 @@ void sendMoves()
 
 void receiveStates()
 {
-	char* receiveBuff = new char[movePacket.size()];
+	StatePacket state;
+	char* receiveBuff = new char[state.size()];
 	int serverSize = sizeof(server);
 
 	while (true)
 	{
-		if (recvfrom(mySocket, receiveBuff, movePacket.size(), 0, (struct sockaddr *) &server, &serverSize) == SOCKET_ERROR)
-		{
+		if (recvfrom(mySocket, receiveBuff, state.size(), 0, (struct sockaddr *) &server, &serverSize) == SOCKET_ERROR)
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
-			break;
-		}
-		MovePacket received(receiveBuff);
+		state = StatePacket(receiveBuff);
 		printf("received: ");
-		received.print();
-		game.player1()->move(received.x, received.y);
+		state.print();
+		game.update(state);
 	}
 	delete[] receiveBuff;
 }

@@ -41,8 +41,9 @@ public:
 
 class StatePacket : public Packet
 {
+public:
 	StatePacket();
-	StatePacket(int _player, int _x1, int _y1, int _x2, int _y2, int _ballx, int _bally);
+	StatePacket(int _x1, int _y1, int _x2, int _y2, int _ballx, int _bally, Message _message = Message::NOTHING);
 	StatePacket(char* data);
 	~StatePacket() = default;
 
@@ -50,5 +51,6 @@ class StatePacket : public Packet
 	int size();
 	void print();
 
-	int player, x1, y1, x2, y2, ballx, bally;
+	int x1, y1, x2, y2, ballx, bally;
+	Message message;
 };
