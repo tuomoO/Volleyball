@@ -2,6 +2,8 @@
 #include "Game.h"
 #include "Court.h"
 
+#include <iostream>
+
 #include <SFML\Graphics.hpp>
 
 using namespace sf;
@@ -16,6 +18,7 @@ Game::Game()
 	mBall.setRealPos(Court::w / 2, Court::h / 2);
 	mPlayer2 = Slime(&mTexture, Color(255, 0, 0));
 	mPlayer2.setRealPos(Court::w - 64, Court::h);
+	mLocalPlayer = 0;
 }
 
 Game::~Game()
@@ -38,6 +41,34 @@ void Game::draw(sf::RenderWindow* window)
 	window->draw(mPlayer1.getShape());
 	window->draw(mPlayer2.getShape());
 	window->draw(mBall.getShape());
+}
+
+void Game::selectLocalPlayer(Message message)
+{
+	if (message == Message::PLAYER1)
+		mLocalPlayer = 1;
+	else if (message == Message::PLAYER2)
+		mLocalPlayer = 2;
+	else
+		cout << "Invalid value for local player!" << endl;
+}
+
+Slime* Game::getLocalPlayer()
+{
+	if (mLocalPlayer == 1)
+		return &mPlayer1;
+	else if (mLocalPlayer == 2)
+		return &mPlayer2;
+	else
+	{
+		cout << "no local player!" << endl;
+		return nullptr;
+	}
+}
+
+int Game::getLocalPlayerNumber()
+{
+	return mLocalPlayer;
 }
 
 Slime* Game::player1()

@@ -23,6 +23,7 @@
 
 void receiveStates();
 void sendMoves();
+void useAlternativeControls();
 
 using namespace sf;
 using std::string;
@@ -35,11 +36,16 @@ bool sendData;
 MovePacket movePacket;
 
 Game game;
+bool initialised;
+Keyboard::Key leftKey;
+Keyboard::Key rightKey;
+Keyboard::Key jumpKey;
 
 int main()
 {
 	//network
 	WSADATA wsa;
+	initialised = false;
 
 	printf("\nInitialising Winsock...");
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
@@ -62,6 +68,11 @@ int main()
 	server.sin_port = htons(PORT);
 	server.sin_addr.S_un.S_addr = inet_addr(SERVER);
 
+	//keyboard
+	leftKey = Keyboard::A;
+	rightKey = Keyboard::D;
+	jumpKey = Keyboard::W;
+
 	//thread
 	std::thread sendThread(sendMoves);
 	sendThread.detach();
@@ -69,7 +80,8 @@ int main()
 	receiveThread.detach();
 
 	//sfml
-	RenderWindow window(VideoMode(Court::w, Court::h), "Volleyball client", Style::Close);
+	string windowTitleBase = "Volleyball client, player ";
+	RenderWindow window(VideoMode(Court::w, Court::h), windowTitleBase, Style::Close);
 	window.setFramerateLimit(60);	
 
 	//time
@@ -94,18 +106,21 @@ int main()
 
 		if (window.hasFocus())
 		{
-			if (Keyboard::isKeyPressed(Keyboard::Right))
+		}
+
+		if (initialised)
+		{
+			if (Keyboard::isKeyPressed(rightKey))
 			{
 				movePacket = MovePacket(static_cast<int>(0.5f * dt + 0.5f), 0);
 				sendData = true;
 			}
-			else if (Keyboard::isKeyPressed(Keyboard::Left))
+			else if (Keyboard::isKeyPressed(leftKey))
 			{
 				movePacket = MovePacket(static_cast<int>(-0.5f * dt + 0.5f), 0);
 				sendData = true;
 			}
 		}
-
 		// update + draw
 		window.clear(Color(0u, 127u, 255u));
 		game.draw(&window);
@@ -124,8 +139,10 @@ int main()
 			stringstream framesStream;
 			framesStream.precision(2);
 			framesStream << std::setfill('0') << std::setw(4) << std::fixed << fps;
+			stringstream playerNumber;
+			playerNumber << game.getLocalPlayerNumber();
 
-			window.setTitle("Volleyball client (fps: " + framesStream.str() + ")");
+			window.setTitle( windowTitleBase + playerNumber.str() + " (fps: " + framesStream.str() + ")");
 			fpsTimer = 0;
 		}
 	}
@@ -172,6 +189,22 @@ void receiveStates()
 		printf("received: ");
 		state.print();
 		game.update(state);
+		if (state.message == Message::PLAYER1 || state.message == Message::PLAYER2)
+		{
+			game.selectLocalPlayer(state.message);
+			initialised = true;
+
+			//for localhost demo purposes
+			if (state.message == Message::PLAYER2)
+				useAlternativeControls();
+		}
 	}
 	delete[] receiveBuff;
+}
+
+void useAlternativeControls()
+{
+	leftKey = Keyboard::Left;
+	rightKey = Keyboard::Right;
+	jumpKey = Keyboard::Up;
 }

@@ -18,7 +18,10 @@ public:
 
 	void update(StatePacket state);
 	void draw(sf::RenderWindow* window);
+	void selectLocalPlayer(Message message);
+	int getLocalPlayerNumber();
 
+	Slime* getLocalPlayer();
 	Slime* player1();
 	Slime* player2();
 	Ball* ball();
@@ -29,5 +32,6 @@ private:
 	Slime mPlayer1;
 	Slime mPlayer2;
 	Ball mBall;
+	int mLocalPlayer;
 
 };

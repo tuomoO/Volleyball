@@ -27,7 +27,7 @@ using std::stringstream;
 
 void sendStates();
 void receiveMoves();
-MovePacket checkMove(MovePacket& move);
+MovePacket checkMove(MovePacket& move, int player);
 int compareClient(sockaddr_in const &other);
 
 Game game;
@@ -35,6 +35,8 @@ SOCKET mySocket;
 struct sockaddr_in server, client1, client2;
 bool sendData;
 int clientCount;
+bool initializeClient1;
+bool initializeClient2;
 
 int main()
 {
@@ -42,6 +44,8 @@ int main()
 	WSADATA wsa;
 	sendData = false;
 	clientCount = 0;
+	initializeClient1 = false;
+	initializeClient2 = false;
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
@@ -130,12 +134,26 @@ void sendStates()
 			StatePacket packet = game.getState();
 			if (clientCount > 0)
 			{
+				//player 1
+				if (initializeClient1)
+					packet.message = Message::PLAYER1;
 				if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client1, clientSize) == SOCKET_ERROR)
 					printf("sendto() player 1 failed with error code : %d", WSAGetLastError());
+				if (initializeClient1)
+				{
+					initializeClient1 = false;
+					packet.message = Message::NOTHING;
+				}
+				
+				//player2
 				if (clientCount > 1)
 				{
+					if (initializeClient2)
+						packet.message = Message::PLAYER2;
 					if (sendto(mySocket, packet.serialize(), packet.size(), 0, (struct sockaddr*) &client2, clientSize) == SOCKET_ERROR)
 						printf("sendto() player 2 failed with error code : %d", WSAGetLastError());
+					if (initializeClient2)
+						initializeClient2 = false;
 				}
 			}
 			printf("sent: ");
@@ -166,14 +184,16 @@ void receiveMoves()
 		if (clientCount == 0)
 		{
 			client1 = tempClient;
-			player = 1;
 			clientCount++;
+			player = 1;
+			initializeClient1 = true;
 		}
 		else if (clientCount == 1 && compareClient(tempClient) != 1)
 		{
 			client2 = tempClient;
-			player = 2;
 			clientCount++;
+			player = 2;
+			initializeClient2 = true;
 		}
 		else
 			player = compareClient(tempClient);
@@ -187,7 +207,7 @@ void receiveMoves()
 		//update
 		if (player > 0)
 		{
-			packet = checkMove(packet);
+			packet = checkMove(packet, player);
 			if (player == 1)
 				game.player1()->move(packet.x, packet.y);
 			else
@@ -198,14 +218,20 @@ void receiveMoves()
 	delete[] buffer;
 }
 
-MovePacket checkMove(MovePacket& move)
+MovePacket checkMove(MovePacket& move, int player)
 {
+	Vector2i pos;
+	if (player == 1)
+		pos = game.player1()->getRealPos();
+	else
+		pos = game.player2()->getRealPos();
+
 	MovePacket result(move.x, move.y);
-	int x = game.player1()->getRealPos().x + move.x;
+	int x = pos.x + move.x;
 	if (x < 64)
-		result.x = game.player1()->getRealPos().x - 64;
+		result.x = 64 - pos.x;
 	else if (x > Court::w - 64)
-		result.x = Court::w - 64 - game.player1()->getRealPos().x;
+		result.x = Court::w - 64 - pos.x;
 	return result;
 }
 
