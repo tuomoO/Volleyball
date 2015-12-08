@@ -12,6 +12,7 @@ public:
 
 	void jump();
 	void update(float dt);
+	bool isJumping();
 
 private:
 	bool mJumping;

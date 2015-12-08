@@ -84,72 +84,63 @@ int main()
 	float dt = 1.0f / 60;
 	float fps = 60;
 
-	while (window.isOpen())
+	while (game.isRunning())
 	{
 		sendData = false;
 		//time
 		QueryPerformanceFrequency(&frequency);
 		QueryPerformanceCounter(&startTime);
-		
+
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
-			{
 				game.stop();
-				window.close();
+		}
+		if (initialised)
+		{
+			if (Keyboard::isKeyPressed(rightKey))
+			{
+				movePacket.x = static_cast<int>(0.5f * dt + 0.5f);
+				sendData = true;
+			}
+			else if (Keyboard::isKeyPressed(leftKey))
+			{
+				movePacket.x = static_cast<int>(-0.5f * dt + 0.5f);
+				sendData = true;
+			}
+			if (Keyboard::isKeyPressed(jumpKey))
+			{
+				movePacket.message = Message::JUMP;
+				sendData = true;
 			}
 		}
-		if (game.isRunning())
+
+		game.draw(&window);
+
+		//time
+		QueryPerformanceCounter(&endTime);
+		milliSeconds.QuadPart = endTime.QuadPart - startTime.QuadPart;
+		milliSeconds.QuadPart *= 1000;
+		dt = milliSeconds.QuadPart / static_cast<float>(frequency.QuadPart);
+
+		fpsTimer += dt;
+		if (fpsTimer > 100)
 		{
-			if (window.hasFocus())
-			{
-			}
+			fps = (0.8f * fps + 0.2f * ((1.0f / dt) * 1000));
+			stringstream framesStream;
+			framesStream.precision(2);
+			framesStream << std::setfill('0') << std::setw(4) << std::fixed << fps;
+			stringstream playerNumber;
+			playerNumber << game.getLocalPlayerNumber();
 
-			if (initialised)
-			{
-				if (Keyboard::isKeyPressed(rightKey))
-				{
-					movePacket.x = static_cast<int>(0.5f * dt + 0.5f);
-					sendData = true;
-				}
-				else if (Keyboard::isKeyPressed(leftKey))
-				{
-					movePacket.x = static_cast<int>(-0.5f * dt + 0.5f);
-					sendData = true;
-				}
-				if (Keyboard::isKeyPressed(jumpKey))
-				{
-					movePacket.message = Message::JUMP;
-					sendData = true;
-				}
-			}
-
-			game.draw(&window);
-
-			//time
-			QueryPerformanceCounter(&endTime);
-			milliSeconds.QuadPart = endTime.QuadPart - startTime.QuadPart;
-			milliSeconds.QuadPart *= 1000;
-			dt = milliSeconds.QuadPart / static_cast<float>(frequency.QuadPart);
-
-			fpsTimer += dt;
-			if (fpsTimer > 100)
-			{
-				fps = (0.8f * fps + 0.2f * ((1.0f / dt) * 1000));
-				stringstream framesStream;
-				framesStream.precision(2);
-				framesStream << std::setfill('0') << std::setw(4) << std::fixed << fps;
-				stringstream playerNumber;
-				playerNumber << game.getLocalPlayerNumber();
-
-				window.setTitle(windowTitleBase + playerNumber.str() + " (fps: " + framesStream.str() + ")");
-				fpsTimer = 0;
-			}
+			window.setTitle(windowTitleBase + playerNumber.str() + " (fps: " + framesStream.str() + ")");
+			fpsTimer = 0;
 		}
 	}
-	sendThread.join();
-	receiveThread.join();
+	window.close();
+	//sendThread.join();
+	//receiveThread.join();
 	closesocket(mySocket);
 	WSACleanup();
 	return 0;

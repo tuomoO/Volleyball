@@ -59,3 +59,8 @@ void Slime::update(float dt)
 		}
 	}
 }
+
+bool Slime::isJumping()
+{
+	return mJumping;
+}

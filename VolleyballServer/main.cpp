@@ -31,6 +31,7 @@ bool initializeClient2;
 bool sendData;
 Game game;
 std::mutex writeMutex;
+float idleTimer;
 
 int main()
 {
@@ -76,10 +77,11 @@ int main()
 	//time
 	LARGE_INTEGER startTime, endTime, frequency, milliSeconds;
 	float fpsTimer = 0;
+	idleTimer = 0;
 	float dt = 1.0f / 60;
 	float fps = 60;
 
-	while (window.isOpen())
+	while (game.isRunning())
 	{
 		//time
 		QueryPerformanceFrequency(&frequency);
@@ -89,38 +91,44 @@ int main()
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
-			{
 				game.stop();
-				window.close();
-			}
-				
 		}
-		if (game.isRunning())
+		if (idleTimer > 250)
 		{
-			game.update(dt);
-			game.draw(&window);
-
-			//time
-			QueryPerformanceCounter(&endTime);
-			milliSeconds.QuadPart = endTime.QuadPart - startTime.QuadPart;
-			milliSeconds.QuadPart *= 1000;
-			dt = milliSeconds.QuadPart / static_cast<float>(frequency.QuadPart);
-
-			fpsTimer += dt;
-			if (fpsTimer > 100)
-			{
-				fps = (0.8f * fps + 0.2f * ((1.0f / dt) * 1000));
-				stringstream framesStream;
-				framesStream.precision(2);
-				framesStream << std::setfill('0') << std::setw(4) << std::fixed << fps;
-
-				window.setTitle("Volleyball server (fps: " + framesStream.str() + ")");
-				fpsTimer = 0;
-			}
+			idleTimer = 0;
+			sendData = true;
 		}
+		if (game.roundStarted() || game.getPlayer1()->isJumping() || game.getPlayer2()->isJumping())
+		{
+			idleTimer = 0;
+			sendData = true;
+		}
+		game.update(dt);
+		game.draw(&window);
+
+		//time
+		QueryPerformanceCounter(&endTime);
+		milliSeconds.QuadPart = endTime.QuadPart - startTime.QuadPart;
+		milliSeconds.QuadPart *= 1000;
+		dt = milliSeconds.QuadPart / static_cast<float>(frequency.QuadPart);
+
+		fpsTimer += dt;
+		idleTimer += dt;
+		if (fpsTimer > 100)
+		{
+			fps = (0.8f * fps + 0.2f * ((1.0f / dt) * 1000));
+			stringstream framesStream;
+			framesStream.precision(2);
+			framesStream << std::setfill('0') << std::setw(4) << std::fixed << fps;
+
+			window.setTitle("Volleyball server (fps: " + framesStream.str() + ")");
+			fpsTimer = 0;
+		}
+
 	}
-	sendThread.join();
-	receiveThread.join();
+	window.close();
+	//sendThread.join();
+	//receiveThread.join();
 	closesocket(mySocket);
 	WSACleanup();
 	return 0;
@@ -213,19 +221,23 @@ void receiveMoves()
 		{
 			packet = checkMove(packet, player);
 			if (player == 1)
-				game.player1()->move(packet.x);
+				game.getPlayer1()->move(packet.x);
 			else
-				game.player2()->move(packet.x);
+				game.getPlayer2()->move(packet.x);
 
 			//jump
 			if (packet.message == Message::JUMP)
 			{
+				if (!game.roundStarted())
+					game.startRound();
+
 				if (player == 1)
-					game.player1()->jump();
+					game.getPlayer1()->jump();
 				else
-					game.player2()->jump();
+					game.getPlayer2()->jump();
 			}
 			sendData = true;
+			idleTimer = 0;
 		}
 	}
 	delete[] buffer;
@@ -236,9 +248,9 @@ MovePacket checkMove(MovePacket& move, int player)
 	MovePacket result(move);
 	Vector2i pos;
 	if (player == 1)
-		pos = game.player1()->getRealPos();
+		pos = game.getPlayer1()->getRealPos();
 	else
-		pos = game.player2()->getRealPos();
+		pos = game.getPlayer2()->getRealPos();
 
 	//borders
 	int x = pos.x + move.x;

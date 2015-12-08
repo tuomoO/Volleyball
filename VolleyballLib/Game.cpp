@@ -15,7 +15,7 @@ Game::Game()
 	mPlayer1 = Slime(&mTexture, Color(0, 255, 0));
 	mPlayer1.setRealPos(64, Court::h);
 	mBall = Ball(&mTexture);
-	mBall.setRealPos(Court::w / 2, Court::h / 2);
+	mBall.reset();
 	mPlayer2 = Slime(&mTexture, Color(255, 0, 0));
 	mPlayer2.setRealPos(Court::w - 64, Court::h);
 	
@@ -25,6 +25,7 @@ Game::Game()
 	mFence.getShape().setFillColor(Color(64, 64, 64));
 	mLocalPlayer = 0;
 	mRunning = false;
+	mRoundStarted = false;
 }
 
 Game::~Game()
@@ -36,6 +37,10 @@ void Game::update(float dt)
 {
 	mPlayer1.update(dt);
 	mPlayer2.update(dt);
+	if (mBall.hasHitGround())
+		mRoundStarted = false;
+	if (mRoundStarted)
+		mBall.update(dt, mPlayer1.getRealPos(), mPlayer2.getRealPos());
 }
 
 void Game::updateState(StatePacket packet)
@@ -83,12 +88,12 @@ int Game::getLocalPlayerNumber()
 	return mLocalPlayer;
 }
 
-Slime* Game::player1()
+Slime* Game::getPlayer1()
 {
 	return &mPlayer1;
 }
 
-Slime* Game::player2()
+Slime* Game::getPlayer2()
 {
 	return &mPlayer2;
 }
@@ -118,4 +123,15 @@ void Game::stop()
 bool Game::isRunning()
 {
 	return mRunning;
+}
+
+bool Game::roundStarted()
+{
+	return mRoundStarted;
+}
+
+void Game::startRound()
+{
+	mRoundStarted = true;
+	mBall.reset();
 }

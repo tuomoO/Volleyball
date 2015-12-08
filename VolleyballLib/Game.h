@@ -22,13 +22,15 @@ public:
 	void selectLocalPlayer(Message message);
 	int getLocalPlayerNumber();
 	Slime* getLocalPlayer();
-	Slime* player1();
-	Slime* player2();
+	Slime* getPlayer1();
+	Slime* getPlayer2();
 	Ball* ball();
 	StatePacket getState();
 	void start();
 	void stop();
 	bool isRunning();
+	void startRound();
+	bool roundStarted();
 
 private:
 	sf::Texture mTexture;
@@ -38,5 +40,6 @@ private:
 	GameObject mFence;
 	int mLocalPlayer;
 	bool mRunning;
+	bool mRoundStarted;
 
 };
