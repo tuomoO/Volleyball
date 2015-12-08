@@ -16,9 +16,7 @@ public:
 private:
 	float distance(sf::Vector2i other);
 
-	//float mVelocityX;
 	sf::Vector2f mVelocity;
-	//int mTargetY;
 	bool mHitGround;
 	float mGravityTimer;
 };

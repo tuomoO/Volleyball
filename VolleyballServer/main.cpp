@@ -1,5 +1,4 @@
 
-#define SERVER "127.0.0.1"
 #define PORT 8888
 
 #include "Network.h"

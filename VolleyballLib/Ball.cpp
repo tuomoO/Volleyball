@@ -105,9 +105,7 @@ bool Ball::hasHitGround()
 void Ball::reset()
 {
 	mVelocity = Vector2f(0, 0);
-	//mVelocityX = 0;
-	//mTargetY = 0;
 	mHitGround = false;
-	mRealPos = Vector2i(Court::w / 2, 16);
+	mRealPos = Vector2i(Court::w / 2 - 1, 16);
 	mGravityTimer = 0;
 }

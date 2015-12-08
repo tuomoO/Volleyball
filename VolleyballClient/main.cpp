@@ -1,5 +1,4 @@
 
-#define SERVER "127.0.0.1"
 #define PORT 8888
 
 #include "Network.h"
@@ -34,7 +33,7 @@ Keyboard::Key leftKey;
 Keyboard::Key rightKey;
 Keyboard::Key jumpKey;
 
-int main()
+int main(int argc, char **argv)
 {
 	//network
 	WSADATA wsa;
@@ -59,7 +58,10 @@ int main()
 	memset((char *)&server, 0, sizeof(server));
 	server.sin_family = AF_INET;
 	server.sin_port = htons(PORT);
-	server.sin_addr.S_un.S_addr = inet_addr(SERVER);
+	if (argc != 2)
+		server.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+	else
+		server.sin_addr.S_un.S_addr = inet_addr(argv[1]);
 
 	//keyboard
 	leftKey = Keyboard::A;
